@@ -26,6 +26,7 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  songs    Song[]
 }
 
 model Account {
@@ -65,4 +66,71 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum SongStatus {
+  QUEUED
+  GENERATING
+  READY
+  FAILED
+}
+
+enum DurationMode {
+  CLIP
+  SONG
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Song {
+  id              String       @id @default(cuid())
+  userId          String
+  title           String       @default("Senza titolo")
+  status          SongStatus   @default(QUEUED)
+  providerId      String
+  durationMode    DurationMode
+  instrumental    Boolean      @default(false)
+  prompt          String       @db.Text
+  lyrics          String?      @db.Text
+  generatedLyrics String?      @db.Text
+  audioKey        String?
+  mimeType        String?
+  durationSeconds Int?
+  errorCode       String?
+  errorMessage    String?      @db.Text
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  completedAt     DateTime?
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs Job[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+// Generic job table used as the queue (see src/server/jobs). The worker claims rows with
+// FOR UPDATE SKIP LOCKED, so no Redis is needed.
+model Job {
+  id          String    @id @default(cuid())
+  kind        String
+  songId      String?
+  status      JobStatus @default(PENDING)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  runAt       DateTime  @default(now())
+  lockedAt    DateTime?
+  lockedBy    String?
+  lastError   String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  song Song? @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAt])
 }

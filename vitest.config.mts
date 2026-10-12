@@ -10,5 +10,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // Database suites share one test database and delete rows: run files one at a time.
+    fileParallelism: false,
   },
 });

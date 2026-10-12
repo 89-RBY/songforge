@@ -17,8 +17,47 @@ const envSchema = z
     SMTP_URL: optionalString,
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
+    MOCK_PROVIDER: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    GEMINI_API_KEY: optionalString,
+    GEMINI_BASE_URL: z.url().default("https://generativelanguage.googleapis.com"),
+    LYRIA_SONG_MODEL: z.string().min(1).default("lyria-3.5"),
+    LYRIA_CLIP_MODEL: z.string().min(1).default("lyria-3-clip-preview"),
+    LYRIA_TIMEOUT_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
+    MOCK_DELAY_MS: z.coerce.number().int().nonnegative().default(1500),
+    STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+    STORAGE_LOCAL_DIR: z.string().min(1).default(".data/audio"),
+    S3_ENDPOINT: optionalString,
+    S3_REGION: z.string().min(1).default("auto"),
+    S3_BUCKET: optionalString,
+    S3_ACCESS_KEY_ID: optionalString,
+    S3_SECRET_ACCESS_KEY: optionalString,
+    WORKER_POLL_MS: z.coerce.number().int().positive().default(2000),
   })
   .superRefine((env, ctx) => {
+    if (!env.MOCK_PROVIDER && !env.GEMINI_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["GEMINI_API_KEY"],
+        message: "Nessun provider musicale attivo: imposta GEMINI_API_KEY oppure MOCK_PROVIDER=true",
+      });
+    }
+    if (env.MOCK_PROVIDER && env.NODE_ENV === "production") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["MOCK_PROVIDER"],
+        message: "MOCK_PROVIDER non è ammesso in produzione: genererebbe audio finti per gli utenti",
+      });
+    }
+    if (env.STORAGE_DRIVER === "s3") {
+      for (const key of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"] as const) {
+        if (!env[key]) {
+          ctx.addIssue({ code: "custom", path: [key], message: `${key} è obbligatorio con STORAGE_DRIVER=s3` });
+        }
+      }
+    }
     if (env.EMAIL_TRANSPORT === "smtp" && !env.SMTP_URL) {
       ctx.addIssue({
         code: "custom",

@@ -76,3 +76,31 @@ tests/                  unit test e test di integrazione
 ## Health check
 
 `GET /api/health` restituisce `200` con `{"status":"ok"}` quando il database risponde, altrimenti `503`.
+
+## Generazione delle canzoni (fase b)
+
+Il flusso è asincrono. L'app web accoda un job nella tabella `Job` di PostgreSQL. Un worker separato lo prende con `FOR UPDATE SKIP LOCKED`, chiama il provider musicale, salva l'audio nello storage e aggiorna la canzone.
+
+```bash
+npm run worker              # in un secondo terminale, accanto a npm run dev
+```
+
+Endpoint (tutti richiedono la sessione):
+
+| Metodo | Percorso | Cosa fa |
+|---|---|---|
+| `GET` | `/api/providers` | provider attivi, durate supportate e costo stimato in centesimi |
+| `POST` | `/api/songs` | crea una canzone: `{ prompt, lyrics?, instrumental?, durationMode: "CLIP" \| "SONG", providerId }` |
+| `GET` | `/api/songs/{id}` | stato e dettagli (solo del proprietario) |
+| `GET` | `/api/songs/{id}/audio` | audio della canzone pronta (solo del proprietario) |
+
+Stati di una canzone: `QUEUED` → `GENERATING` → `READY` oppure `FAILED`. Gli errori transitori (rate limit, timeout, rete) vengono ritentati con backoff; `BLOCKED` no.
+
+Provider:
+
+- **Lyria** (`GEMINI_API_KEY`): modelli `lyria-3.5` per i brani e `lyria-3-clip-preview` per le clip da 30 secondi.
+- **Mock** (`MOCK_PROVIDER=true`): genera un WAV di prova senza chiamare nessun servizio. Non è ammesso in produzione.
+
+Storage: `STORAGE_DRIVER=local` salva in `STORAGE_LOCAL_DIR`; `s3` usa un bucket S3-compatibile (Cloudflare R2 o altro).
+
+Limiti: una utente può avere al massimo due canzoni in lavorazione. Un prompt che nomina un artista reale viene rifiutato (`MODERATION_BLOCKED`).
