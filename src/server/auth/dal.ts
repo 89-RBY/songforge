@@ -1,5 +1,5 @@
 import "server-only";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/server/db";
@@ -34,4 +34,16 @@ export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return user;
+}
+
+// Admin pages answer 404 to everyone else, so the admin area does not reveal that it exists.
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") notFound();
+  return user;
+}
+
+export async function getCurrentAdmin(): Promise<CurrentUser | null> {
+  const user = await getCurrentUser();
+  return user?.role === "ADMIN" ? user : null;
 }

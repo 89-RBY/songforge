@@ -182,3 +182,16 @@ model AppSetting {
   value     Json
   updatedAt DateTime @updatedAt
 }
+
+// Who changed what in the admin panel. No foreign keys: the log outlives the accounts it refers to.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  targetId  String?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetId])
+}

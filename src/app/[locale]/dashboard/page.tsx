@@ -33,6 +33,11 @@ async function DashboardContent({ locale, dict }: { locale: Locale; dict: Dictio
         <Link href={`/${locale}/billing`} className="text-violet-300 underline">
           {dict.dashboard.billingCta}
         </Link>
+        {user.role === "ADMIN" && (
+          <Link href={`/${locale}/admin`} className="text-violet-300 underline">
+            {dict.dashboard.adminCta}
+          </Link>
+        )}
       </div>
       <p className="text-zinc-400">{dict.dashboard.libraryNote}</p>
       <form action={signOutAction}>

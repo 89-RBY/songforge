@@ -132,3 +132,23 @@ Con `MOCK_PROVIDER=true` il modello di prova è gratuito. Imposta `MOCK_COST_CEN
 
 - Verificato automaticamente: ledger con concorrenza e idempotenza, addebito e rimborso delle canzoni, firma e doppia consegna dei webhook, parametri del checkout, E2E nel browser con webhook firmati in locale.
 - Non verificato: un checkout reale con Stripe. La sandbox di sviluppo non raggiunge `api.stripe.com`, quindi il flusso completo va provato in modalità test prima di attivare i pagamenti reali.
+
+## Amministrazione (fase f)
+
+- Area: `/{locale}/admin`. Chi non è amministratore non vede contenuto dell'area; per le pagine protette la risposta HTTP è un reindirizzamento o una pagina 404 inviata nello stream (limite di Next.js con il rendering in streaming, da non confondere con l'accesso ai dati, che non avviene mai).
+- Panoramica: canzoni create, completate e non riuscite, utenti attivi e totali, ricavi, costo API, margine lordo, crediti venduti e spesi, spesa API del giorno rispetto al tetto, errori degli ultimi 7 giorni. Ricavi e costi sono stime, al netto di IVA e commissioni.
+- Utenti: ricerca per email o nome, dettaglio con blocco e sblocco, rettifica manuale dei crediti (registrata nel registro con il motivo). Non puoi bloccare il tuo account.
+- Impostazioni: moltiplicatore, valore del credito, crediti di benvenuto, tetto giornaliero, prezzi dei pacchetti e modelli disattivabili. Le modifiche non cambiano gli addebiti già fatti.
+- Errori: ultime 100 canzoni non riuscite, con codice e messaggio. Il testo del prompt non viene mostrato.
+- Ogni azione dell'amministratore finisce nella tabella `AuditLog` (chi, cosa, quando).
+
+### Promuovere un amministratore
+
+L'utente deve aver già effettuato l'accesso almeno una volta. Poi, dal server (o dal terminale con le stesse variabili d'ambiente):
+
+```bash
+npm run admin:promote -- utente@tuodominio.it          # concede il ruolo
+npm run admin:promote -- --revoke utente@tuodominio.it  # lo rimuove
+```
+
+Lo script non è esposto da nessuna pagina: chi può eseguirlo ha accesso al database.

@@ -43,7 +43,7 @@ export function BuyButton({ packageId, locale, buy, buying, genericError, errors
         type="button"
         onClick={startCheckout}
         disabled={pending}
-        className="w-full rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+        className="w-full rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
       >
         {pending ? buying : buy}
       </button>
