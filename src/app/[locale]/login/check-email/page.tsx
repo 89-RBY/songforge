@@ -14,7 +14,7 @@ export default async function CheckEmailPage({ params }: PageProps<"/[locale]/lo
       <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-4 px-4 pb-16 text-center">
         <h1 className="text-3xl font-bold tracking-tight">{dict.checkEmail.title}</h1>
         <p className="text-zinc-400">{dict.checkEmail.body}</p>
-        <p className="text-sm text-zinc-500">{dict.checkEmail.spam}</p>
+        <p className="text-sm text-zinc-400">{dict.checkEmail.spam}</p>
       </main>
     </>
   );

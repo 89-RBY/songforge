@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export const inputClass =
-  "w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-zinc-50 placeholder:text-zinc-500 focus:border-violet-400 focus:outline-none";
+  "w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-zinc-50 placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none";
 
 export function StepTitle({ children }: { children: ReactNode }) {
   return <h2 className="text-2xl font-bold tracking-tight">{children}</h2>;

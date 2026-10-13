@@ -3,6 +3,7 @@ export type StoredAudio = { data: Uint8Array; mimeType: string };
 export interface AudioStorage {
   put(key: string, data: Uint8Array): Promise<void>;
   get(key: string): Promise<StoredAudio | null>;
+  delete(key: string): Promise<void>;
 }
 
 const MIME_BY_EXTENSION: Record<string, string> = { mp3: "audio/mpeg", wav: "audio/wav" };

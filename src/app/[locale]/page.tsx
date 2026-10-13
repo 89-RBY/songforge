@@ -7,7 +7,7 @@ import { getDictionary } from "@/i18n";
 import { isLocale, type Locale } from "@/i18n/routing";
 import { getCurrentUser } from "@/server/auth/dal";
 
-const PRIMARY = "rounded-full bg-violet-500 px-6 py-3 font-medium text-white hover:bg-violet-400";
+const PRIMARY = "rounded-full bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-600";
 
 async function HomeCta({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const user = await getCurrentUser();
@@ -31,7 +31,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
           <h1 className="text-4xl font-bold tracking-tight">{dict.meta.title}</h1>
           <p className="text-lg text-zinc-200">{dict.home.headline}</p>
           <p className="text-zinc-400">{dict.home.subline}</p>
-          <Suspense fallback={<span className="text-zinc-500">{dict.common.loading}</span>}>
+          <Suspense fallback={<span className="text-zinc-400">{dict.common.loading}</span>}>
             <HomeCta locale={locale} dict={dict} />
           </Suspense>
         </div>
@@ -43,7 +43,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
             ))}
           </ol>
         </section>
-        <p className="text-sm text-zinc-500">{dict.home.aiNote}</p>
+        <p className="text-sm text-zinc-400">{dict.home.aiNote}</p>
       </main>
     </>
   );

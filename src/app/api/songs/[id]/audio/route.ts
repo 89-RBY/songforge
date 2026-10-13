@@ -13,6 +13,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!song || song.status !== "READY" || !song.audioKey) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
+  if (song.audioPurgedAt) {
+    return NextResponse.json({ error: "PURGED" }, { status: 410 });
+  }
 
   const audio = await getAudioStorage().get(song.audioKey);
   if (!audio) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

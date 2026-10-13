@@ -22,8 +22,11 @@ async function DashboardContent({ locale, dict }: { locale: Locale; dict: Dictio
         <p className="text-sm text-zinc-400">{dict.dashboard.welcome}</p>
         <h1 className="break-all text-2xl font-bold tracking-tight sm:text-3xl">{user.name ?? user.email}</h1>
       </div>
-      <Link href={`/${locale}/create`} className="w-fit rounded-full bg-violet-500 px-5 py-2.5 font-medium text-white hover:bg-violet-400">
+      <Link href={`/${locale}/create`} className="w-fit rounded-full bg-violet-600 px-5 py-2.5 font-medium text-white hover:bg-violet-600">
         {dict.dashboard.createCta}
+      </Link>
+      <Link href={`/${locale}/library`} className="w-fit rounded-full border border-zinc-700 px-5 py-2 text-sm hover:bg-zinc-900">
+        {dict.library.title}
       </Link>
       <p className="text-zinc-400">{dict.dashboard.libraryNote}</p>
       <form action={signOutAction}>

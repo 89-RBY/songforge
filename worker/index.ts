@@ -3,7 +3,10 @@ import { getEnv } from "@/server/config/env";
 import { getDb } from "@/server/db";
 import { processNextJob } from "@/server/jobs/process";
 import { getMusicProviders } from "@/server/music/registry";
+import { purgeExpiredAudio } from "@/server/retention/purge";
 import { getAudioStorage } from "@/server/storage";
+
+const PURGE_EVERY_MS = 60 * 60 * 1000;
 
 // Long-running process, separate from the web app. Run with: npm run worker
 async function main(): Promise<void> {
@@ -30,7 +33,23 @@ async function main(): Promise<void> {
     `[worker] avviato come ${workerId}, provider attivi: ${deps.providers.map((p) => p.id).join(", ") || "nessuno"}`,
   );
 
+  let nextPurgeAt = 0;
   while (!stopping) {
+    if (Date.now() >= nextPurgeAt) {
+      nextPurgeAt = Date.now() + PURGE_EVERY_MS;
+      try {
+        const purged = await purgeExpiredAudio({
+          db,
+          storage: deps.storage,
+          now: new Date(),
+          retentionDays: env.AUDIO_RETENTION_DAYS,
+        });
+        if (purged > 0) console.info(`[worker] audio scaduto rimosso da ${purged} canzoni`);
+      } catch (error) {
+        console.error("[worker] rimozione audio scaduto non riuscita:", error);
+      }
+    }
+
     let worked = false;
     try {
       worked = await processNextJob(deps);

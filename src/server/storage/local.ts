@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { assertValidKey, mimeTypeForKey, type AudioStorage, type StoredAudio } from "./types";
 
@@ -31,5 +31,9 @@ export class LocalAudioStorage implements AudioStorage {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
       throw error;
     }
+  }
+
+  async delete(key: string): Promise<void> {
+    await rm(this.fileFor(key), { force: true });
   }
 }

@@ -127,6 +127,9 @@ export function Wizard({ locale, dict, providers }: Props) {
           instrumental,
           durationMode: draft.durationMode,
           providerId: selected.id,
+          mood: draft.mood,
+          energy: draft.energy,
+          genre: draft.genre,
         }),
       });
       if (response.status === 201) {
@@ -214,7 +217,7 @@ export function Wizard({ locale, dict, providers }: Props) {
           aria-valuenow={position + 1}
           className="h-1.5 overflow-hidden rounded-full bg-zinc-800"
         >
-          <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${((position + 1) / steps.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-violet-600 transition-all" style={{ width: `${((position + 1) / steps.length) * 100}%` }} />
         </div>
       </div>
 
@@ -233,7 +236,7 @@ export function Wizard({ locale, dict, providers }: Props) {
           <button
             type="button"
             onClick={() => setIndex(position + 1)}
-            className="rounded-full bg-violet-500 px-6 py-2 text-sm font-medium text-white hover:bg-violet-400"
+            className="rounded-full bg-violet-600 px-6 py-2 text-sm font-medium text-white hover:bg-violet-600"
           >
             {dict.wizard.next}
           </button>

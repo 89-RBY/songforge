@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { assertValidKey, mimeTypeForKey, type AudioStorage, type StoredAudio } from "./types";
 
 export type S3SendClient = Pick<S3Client, "send">;
@@ -33,5 +33,10 @@ export class S3AudioStorage implements AudioStorage {
       if ((error as { name?: string }).name === "NoSuchKey") return null;
       throw error;
     }
+  }
+
+  async delete(key: string): Promise<void> {
+    assertValidKey(key);
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 }

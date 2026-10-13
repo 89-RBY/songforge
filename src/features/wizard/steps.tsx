@@ -39,7 +39,7 @@ export function IdeaStep({ dict, draft, update }: StepProps) {
         onChange={(event) => update({ idea: event.target.value, templateId: null })}
         className={inputClass}
       />
-      <p className="text-sm text-zinc-500">{t.hint}</p>
+      <p className="text-sm text-zinc-400">{t.hint}</p>
       <div>
         <p className="mb-2 text-sm font-medium text-zinc-300">{t.templatesTitle}</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -246,7 +246,7 @@ export function InstrumentsStep({ dict, draft, update }: StepProps) {
   return (
     <div className="space-y-6">
       <StepTitle>{t.title}</StepTitle>
-      <p className="text-sm text-zinc-500">{t.hint}</p>
+      <p className="text-sm text-zinc-400">{t.hint}</p>
       <div className="flex flex-wrap gap-2">
         {INSTRUMENT_IDS.map((id) => (
           <Chip key={id} selected={draft.instruments.includes(id)} onToggle={() => toggle(id)}>
@@ -333,7 +333,7 @@ export function LyricsStep({
           </OptionCard>
         ))}
       </div>
-      {draft.lyricsMode === "ai" && <p className="text-sm text-zinc-500">{t.fallbackNote}</p>}
+      {draft.lyricsMode === "ai" && <p className="text-sm text-zinc-400">{t.fallbackNote}</p>}
       {draft.lyricsMode !== "ai" && (
         <div className="space-y-3">
           {draft.lyricsMode === "editable" && (
@@ -362,7 +362,7 @@ export function LyricsStep({
             onChange={(event) => update({ lyrics: event.target.value })}
             className={inputClass}
           />
-          <p className="text-sm text-zinc-500">{t.textHint}</p>
+          <p className="text-sm text-zinc-400">{t.textHint}</p>
         </div>
       )}
     </div>
@@ -401,7 +401,7 @@ export function SummaryStep({
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:gap-6">
         <SongCover mood={draft.mood} energy={draft.energy} label={preview} />
         <div className="w-full space-y-3">
-          <p className="text-sm text-zinc-500">{dict.wizard.previewHint}</p>
+          <p className="text-sm text-zinc-400">{dict.wizard.previewHint}</p>
           <label htmlFor="title" className="block text-sm font-medium text-zinc-300">
             {t.titleLabel}
           </label>
@@ -421,7 +421,7 @@ export function SummaryStep({
             {t.cost}:{" "}
             {credits > 0 ? (
               <>
-                {format(t.credits, { count: credits })} <span className="text-zinc-500">({t.provisional})</span>
+                {format(t.credits, { count: credits })} <span className="text-zinc-400">({t.provisional})</span>
               </>
             ) : (
               t.free
@@ -449,7 +449,7 @@ export function SummaryStep({
       <details className="rounded-2xl border border-zinc-800 p-4">
         <summary className="cursor-pointer text-sm font-medium text-zinc-300">{t.advanced}</summary>
         <div className="mt-3 space-y-2">
-          <p className="text-sm text-zinc-500">{t.advancedHint}</p>
+          <p className="text-sm text-zinc-400">{t.advancedHint}</p>
           <label htmlFor="prompt" className="sr-only">
             {t.advanced}
           </label>
@@ -472,7 +472,7 @@ export function SummaryStep({
         </div>
       </details>
 
-      <div className="space-y-1 text-xs text-zinc-500">
+      <div className="space-y-1 text-xs text-zinc-400">
         <p>{t.aiDisclosure}</p>
         <p>{t.rightsNote}</p>
       </div>
@@ -487,7 +487,7 @@ export function SummaryStep({
         type="button"
         onClick={onSubmit}
         disabled={busy || available.length === 0}
-        className="w-full rounded-full bg-violet-500 px-6 py-3 font-medium text-white hover:bg-violet-400 disabled:opacity-50"
+        className="w-full rounded-full bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-600 disabled:opacity-50"
       >
         {busy ? t.submitting : t.submit}
       </button>

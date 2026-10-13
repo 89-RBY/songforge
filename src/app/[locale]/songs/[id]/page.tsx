@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SongView } from "@/features/songs/SongView";
 import type { Dictionary } from "@/i18n/dictionaries/it";
 import { getDictionary } from "@/i18n";
 import { isLocale, type Locale } from "@/i18n/routing";
-import { SongView } from "@/features/songs/SongView";
 import { requireUser } from "@/server/auth/dal";
 import { getDb } from "@/server/db";
 import { getSongForUser } from "@/server/songs/service";
@@ -16,17 +16,22 @@ async function SongContent({ id, locale, dict }: { id: string; locale: Locale; d
 
   return (
     <SongView
+      locale={locale}
       dict={dict}
-      createHref={`/${locale}/create`}
       initial={{
         id: song.id,
         title: song.title,
         status: song.status,
         lyrics: song.generatedLyrics ?? song.lyrics ?? null,
-        audioUrl: song.status === "READY" ? `/api/songs/${song.id}/audio` : null,
+        audioUrl: song.status === "READY" && !song.audioPurgedAt ? `/api/songs/${song.id}/audio` : null,
         errorMessage: song.errorMessage,
         durationMode: song.durationMode,
         instrumental: song.instrumental,
+        mood: song.mood,
+        energy: song.energy,
+        favorite: song.favorite,
+        shareToken: song.shareToken,
+        audioPurged: song.audioPurgedAt !== null,
       }}
     />
   );

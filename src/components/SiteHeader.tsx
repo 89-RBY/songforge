@@ -17,7 +17,7 @@ export function SiteHeader({ locale, dict, pathSuffix }: { locale: Locale; dict:
             hrefLang={code}
             aria-current={code === locale ? "page" : undefined}
             className={`rounded-full px-2.5 py-1 ${
-              code === locale ? "bg-violet-500 text-white" : "text-zinc-400 hover:text-zinc-100"
+              code === locale ? "bg-violet-600 text-white" : "text-zinc-400 hover:text-zinc-100"
             }`}
           >
             {LOCALE_NAMES[code]}

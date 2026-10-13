@@ -75,16 +75,16 @@ async function LoginContent({
           required
           autoComplete="email"
           placeholder={dict.login.emailPlaceholder}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-zinc-50 placeholder:text-zinc-500 focus:border-violet-400 focus:outline-none"
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-zinc-50 placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none"
         />
-        <button type="submit" className="w-full rounded-lg bg-violet-500 px-4 py-3 font-medium text-white hover:bg-violet-400">
+        <button type="submit" className="w-full rounded-lg bg-violet-600 px-4 py-3 font-medium text-white hover:bg-violet-600">
           {dict.login.submit}
         </button>
       </form>
 
       {googleEnabled && (
         <>
-          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-500">
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-400">
             <span className="h-px flex-1 bg-zinc-800" />
             {dict.login.or}
             <span className="h-px flex-1 bg-zinc-800" />

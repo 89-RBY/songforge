@@ -37,6 +37,7 @@ const envSchema = z
     WORKER_POLL_MS: z.coerce.number().int().positive().default(2000),
     ANTHROPIC_API_KEY: optionalString,
     LYRICS_MODEL: z.string().min(1).default("claude-opus-5-5"),
+    AUDIO_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
   })
   .superRefine((env, ctx) => {
     if (!env.MOCK_PROVIDER && !env.GEMINI_API_KEY) {
