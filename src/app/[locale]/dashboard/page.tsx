@@ -40,6 +40,9 @@ async function DashboardContent({ locale, dict }: { locale: Locale; dict: Dictio
         )}
       </div>
       <p className="text-zinc-400">{dict.dashboard.libraryNote}</p>
+      <Link href={`/${locale}/account`} className="w-fit text-sm text-violet-300 underline">
+        {dict.dashboard.accountCta}
+      </Link>
       <form action={signOutAction}>
         <button type="submit" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-900">
           {dict.common.signOut}

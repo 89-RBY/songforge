@@ -1,0 +1,73 @@
+# Production stack for one VPS: Postgres, migrations, web app, worker and Caddy (HTTPS).
+# Untested here: validate on the server with `docker compose config` and a first start before going live.
+# All secrets live in .env.production (never committed). See README, section "Deploy".
+x-app: &app
+  build: .
+  restart: unless-stopped
+  env_file: .env.production
+  environment:
+    DATABASE_URL: postgresql://songforge:${POSTGRES_PASSWORD:?Imposta POSTGRES_PASSWORD in .env.production}@db:5432/songforge
+    TRUST_PROXY: "true"
+    STORAGE_LOCAL_DIR: /app/.data/audio
+  volumes:
+    - audio:/app/.data
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: songforge
+      POSTGRES_USER: songforge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Imposta POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U songforge -d songforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: .
+    restart: "no"
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql://songforge:${POSTGRES_PASSWORD:?Imposta POSTGRES_PASSWORD in .env.production}@db:5432/songforge
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    <<: *app
+    command: ["npm", "run", "start"]
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  worker:
+    <<: *app
+    command: ["npm", "run", "worker"]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  audio:
+  caddy_data:
+  caddy_config:

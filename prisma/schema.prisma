@@ -195,3 +195,10 @@ model AuditLog {
   @@index([createdAt])
   @@index([targetId])
 }
+
+// Fixed-window counters for rate limits. Old rows are removed by the worker.
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+}

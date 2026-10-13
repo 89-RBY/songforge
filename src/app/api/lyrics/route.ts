@@ -4,6 +4,9 @@ import { getCurrentUser } from "@/server/auth/dal";
 import { getLyricsProvider } from "@/server/lyrics";
 import { LyricsError } from "@/server/lyrics/types";
 import { checkPrompt } from "@/server/moderation/prompt";
+import { getDb } from "@/server/db";
+import { RULES } from "@/server/ratelimit/rules";
+import { checkLimits, rateLimitedResponse } from "@/server/ratelimit/guard";
 
 const lyricsInput = z.object({
   idea: z.string().trim().max(500).optional(),
@@ -21,6 +24,9 @@ export async function POST(request: Request) {
   if (!request.headers.get("content-type")?.includes("application/json")) {
     return NextResponse.json({ error: "UNSUPPORTED_MEDIA_TYPE" }, { status: 415 });
   }
+
+  const retryAfter = await checkLimits(getDb(), [{ rule: RULES.lyricsPerUser, subject: user.id }]);
+  if (retryAfter !== null) return rateLimitedResponse(retryAfter);
 
   let body: unknown;
   try {

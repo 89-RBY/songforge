@@ -152,3 +152,34 @@ npm run admin:promote -- --revoke utente@tuodominio.it  # lo rimuove
 ```
 
 Lo script non è esposto da nessuna pagina: chi può eseguirlo ha accesso al database.
+
+## Sicurezza, limiti e conformità (fase g)
+
+- Limiti di richiesta su database (`RateLimit`), a finestra fissa e in una sola istruzione atomica: creazione canzoni e rigenerazioni (20 l'ora per utente, 60 l'ora per indirizzo IP), testi (30 l'ora per utente), checkout (10 l'ora per utente), link di accesso (5 ogni 15 minuti per email, 20 per indirizzo IP). Risposta `429` con `Retry-After`. I contatori scaduti vengono cancellati dal worker dopo 24 ore.
+- Indirizzo IP: il limite per IP usa l'ultimo indirizzo aggiunto dal proxy (`X-Forwarded-For`) e richiede `TRUST_PROXY=true` dietro Caddy. Senza proxy fidato il limite per IP è disattivato, invece di condividere un unico contatore tra tutti i visitatori.
+- Tetto giornaliero di spesa API (`dailyApiCapCents`, nelle impostazioni admin): le canzoni a pagamento oltre il tetto non vengono create fino al giorno successivo (UTC). `0` significa nessun tetto.
+- Moderazione a due livelli: lista locale di artisti reali, poi, se è impostata `ANTHROPIC_API_KEY`, una verifica con un modello che classifica imitazioni di artisti, odio, contenuti sessuali con minori e violenza esplicita. Se la verifica non risponde la canzone non viene creata (`MODERATION_UNAVAILABLE`). Senza chiave resta solo il primo livello. La verifica dipende dal modello e può sbagliare: non è una garanzia assoluta.
+- Account: esportazione dei dati in JSON (profilo, canzoni senza audio, movimenti di crediti) e cancellazione con conferma dell'email. La cancellazione rimuove audio e canzoni e lascia i movimenti di crediti senza collegamento al profilo.
+- Cookie: solo cookie tecnici (sessione, protezione dei moduli, lingua). Il banner ricorda questo e salva la chiusura nel browser, senza cookie.
+- Termini e privacy: bozze in `src/content/legal.ts` (italiano e inglese; le altre lingue mostrano l'inglese con un avviso). Le parti tra parentesi quadre vanno completate e verificate da un professionista prima della pubblicazione.
+
+## Deploy (fase g)
+
+Serve un VPS Linux con Docker e Docker Compose. Su Hostinger va scelto un piano VPS: il hosting condiviso non può eseguire Postgres e il worker in modo continuo. Serve anche un dominio il cui record A punta al server.
+
+Il file `docker-compose.yml` avvia cinque servizi: database Postgres, migrazioni (`prisma migrate deploy`, una volta sola), app web, worker e Caddy, che ottiene il certificato HTTPS.
+
+1. Sul server: clona il repository, poi `cp .env.example .env.production` e compila almeno `APP_DOMAIN`, `APP_URL` e `AUTH_URL` (https://…), `AUTH_SECRET` (`openssl rand -base64 48`), `POSTGRES_PASSWORD`, `EMAIL_TRANSPORT="smtp"` con `SMTP_URL` ed `EMAIL_FROM`, `MOCK_PROVIDER="false"` con `GEMINI_API_KEY`. `DATABASE_URL` e `TRUST_PROXY` li imposta già il file compose.
+2. `docker compose config` per controllare la sintassi, poi `docker compose up -d --build`.
+3. Controlla `https://<dominio>/api/health` e `docker compose logs -f worker`.
+4. Registrati una volta con la tua email, poi rendila amministratore: `docker compose exec app npm run admin:promote -- tua@email`.
+5. Stripe, modalità test: crea un endpoint su `https://<dominio>/api/stripe/webhook` con gli eventi `checkout.session.completed` e `checkout.session.async_payment_succeeded`. Copia il secret in `STRIPE_WEBHOOK_SECRET` e `STRIPE_SECRET_KEY` (`sk_test_…`), poi `docker compose up -d app worker`. Prova un acquisto con la carta `4242 4242 4242 4242`.
+6. Prima di passare alle chiavi live: testi legali verificati, prezzi confermati, scelta dei dati fiscali. L'app non emette fatture.
+
+Backup, da pianificare con cron: `docker compose exec -T db pg_dump -U songforge songforge > backup-$(date +%F).sql`, più una copia del volume `audio` (le canzoni sono lì). Aggiornamento: `git pull && docker compose up -d --build`; le migrazioni girano prima dell'avvio.
+
+### Non verificato in questo ambiente
+
+- Dockerfile, `docker-compose.yml` e Caddyfile non sono stati eseguiti: nel sandbox di sviluppo non c'è un demone Docker. Il primo avvio va fatto sul server, con `docker compose config` e i log.
+- L'audio è su un volume locale: per più server o per non dipendere dal disco del VPS serve `STORAGE_DRIVER="s3"` con Cloudflare R2 o un altro storage compatibile.
+- Gli account Google e Stripe reali, l'invio SMTP reale e la chiamata a Lyria non sono stati provati: vanno verificati in modalità test prima del lancio.

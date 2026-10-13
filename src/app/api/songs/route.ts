@@ -3,7 +3,12 @@ import { ZodError } from "zod";
 import { getCurrentUser } from "@/server/auth/dal";
 import { getDb } from "@/server/db";
 import { getMusicProviders } from "@/server/music/registry";
-import { createSong, SongServiceError } from "@/server/songs/service";
+import { RULES } from "@/server/ratelimit/rules";
+import { checkLimits, rateLimitedResponse } from "@/server/ratelimit/guard";
+import { clientIp } from "@/server/http/client-ip";
+import { songErrorResponse } from "@/server/http/errors";
+import { getPromptClassifier } from "@/server/moderation";
+import { createSong } from "@/server/songs/service";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -13,6 +18,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "UNSUPPORTED_MEDIA_TYPE" }, { status: 415 });
   }
 
+  const db = getDb();
+  const ip = clientIp(request.headers);
+  const retryAfter = await checkLimits(db, [
+    { rule: RULES.songsPerUser, subject: user.id },
+    ...(ip ? [{ rule: RULES.songsPerIp, subject: ip }] : []),
+  ]);
+  if (retryAfter !== null) return rateLimitedResponse(retryAfter);
+
   let body: unknown;
   try {
     body = await request.json();
@@ -21,7 +34,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const song = await createSong({ db: getDb(), providers: getMusicProviders() }, user.id, body);
+    const song = await createSong({ db, providers: getMusicProviders(), classifier: getPromptClassifier() }, user.id, body);
     return NextResponse.json({ id: song.id, status: song.status }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
@@ -33,10 +46,8 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (error instanceof SongServiceError) {
-      const status = error.code === "TOO_MANY_ACTIVE" ? 429 : error.code === "INSUFFICIENT_CREDITS" ? 402 : 422;
-      return NextResponse.json({ error: error.code, message: error.message }, { status });
-    }
+    const response = songErrorResponse(error);
+    if (response) return response;
     throw error;
   }
 }

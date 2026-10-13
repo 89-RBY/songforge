@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -7,6 +8,10 @@ import type { Dictionary } from "@/i18n/dictionaries/it";
 import { getDictionary } from "@/i18n";
 import { isLocale, type Locale } from "@/i18n/routing";
 import { getEnv } from "@/server/config/env";
+import { getDb } from "@/server/db";
+import { clientIp } from "@/server/http/client-ip";
+import { checkLimits } from "@/server/ratelimit/guard";
+import { RULES } from "@/server/ratelimit/rules";
 
 const emailSchema = z.email();
 
@@ -24,6 +29,15 @@ async function requestMagicLink(locale: Locale, formData: FormData) {
   const parsed = emailSchema.safeParse(String(formData.get("email") ?? "").trim().toLowerCase());
   if (!parsed.success) {
     redirect(`/${locale}/login?error=invalid-email`);
+  }
+  const db = getDb();
+  const ip = clientIp(await headers());
+  const retryAfter = await checkLimits(db, [
+    { rule: RULES.magicLinkPerEmail, subject: parsed.data },
+    ...(ip ? [{ rule: RULES.magicLinkPerIp, subject: ip }] : []),
+  ]);
+  if (retryAfter !== null) {
+    redirect(`/${locale}/login?error=rate-limited`);
   }
   const authUrl = await signIn("nodemailer", {
     email: parsed.data,

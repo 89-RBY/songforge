@@ -39,7 +39,13 @@ const envSchema = z
     WORKER_POLL_MS: z.coerce.number().int().positive().default(2000),
     ANTHROPIC_API_KEY: optionalString,
     LYRICS_MODEL: z.string().min(1).default("claude-opus-5-5"),
+    MODERATION_MODEL: z.string().min(1).default("claude-haiku-5-5"),
     AUDIO_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+    // Set to true only behind a reverse proxy that sets X-Forwarded-For (the Caddy service in docker-compose).
+    TRUST_PROXY: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
     STRIPE_SECRET_KEY: optionalString,
     STRIPE_WEBHOOK_SECRET: optionalString,
   })

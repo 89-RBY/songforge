@@ -1,0 +1,12 @@
+# HTTPS certificates are issued automatically for APP_DOMAIN (set in .env.production).
+# Untested here: check with `docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile`.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

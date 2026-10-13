@@ -6,6 +6,8 @@ import { getCurrentUser } from "@/server/auth/dal";
 import { getEnv } from "@/server/config/env";
 import { getDb } from "@/server/db";
 import { findPackage, getPricing } from "@/server/pricing/settings";
+import { RULES } from "@/server/ratelimit/rules";
+import { checkLimits, rateLimitedResponse } from "@/server/ratelimit/guard";
 
 const checkoutInput = z.object({ packageId: z.string().min(1).max(32), locale: z.string().min(2).max(5) });
 
@@ -16,6 +18,9 @@ export async function POST(request: Request) {
   if (!request.headers.get("content-type")?.includes("application/json")) {
     return NextResponse.json({ error: "UNSUPPORTED_MEDIA_TYPE" }, { status: 415 });
   }
+
+  const retryAfter = await checkLimits(getDb(), [{ rule: RULES.checkoutPerUser, subject: user.id }]);
+  if (retryAfter !== null) return rateLimitedResponse(retryAfter);
 
   const parsed = checkoutInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "VALIDATION" }, { status: 400 });

@@ -3,6 +3,7 @@ import { getEnv } from "@/server/config/env";
 import { getDb } from "@/server/db";
 import { processNextJob } from "@/server/jobs/process";
 import { getMusicProviders } from "@/server/music/registry";
+import { purgeRateLimits } from "@/server/ratelimit/limiter";
 import { purgeExpiredAudio } from "@/server/retention/purge";
 import { getAudioStorage } from "@/server/storage";
 
@@ -45,8 +46,10 @@ async function main(): Promise<void> {
           retentionDays: env.AUDIO_RETENTION_DAYS,
         });
         if (purged > 0) console.info(`[worker] audio scaduto rimosso da ${purged} canzoni`);
+        const counters = await purgeRateLimits(db, 24);
+        if (counters > 0) console.info(`[worker] contatori di rate limit scaduti rimossi: ${counters}`);
       } catch (error) {
-        console.error("[worker] rimozione audio scaduto non riuscita:", error);
+        console.error("[worker] pulizia periodica non riuscita:", error);
       }
     }
 

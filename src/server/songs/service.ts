@@ -8,7 +8,9 @@ import { creditsFor } from "@/features/wizard/costs";
 import { findProvider } from "@/server/music/registry";
 import type { MusicProvider } from "@/server/music/types";
 import { checkPrompt } from "@/server/moderation/prompt";
+import { startOfUtcDay } from "@/server/admin/metrics";
 import type { AudioStorage } from "@/server/storage/types";
+import type { PromptClassifier } from "@/server/moderation/classifier";
 import { applyVariation, VARIATIONS } from "./variations";
 
 export const MAX_ACTIVE_SONGS_PER_USER = 2;
@@ -41,6 +43,8 @@ export type SongServiceErrorCode =
   | "INVALID_PROVIDER"
   | "TOO_MANY_ACTIVE"
   | "MODERATION_BLOCKED"
+  | "MODERATION_UNAVAILABLE"
+  | "DAILY_CAP_REACHED"
   | "INSUFFICIENT_CREDITS"
   | "NOT_FOUND"
   | "INVALID_STATE";
@@ -65,7 +69,7 @@ export function coverHueFor(mood: string | undefined): number | null {
   return mood && Object.prototype.hasOwnProperty.call(MOOD_HUE, mood) ? MOOD_HUE[mood as MoodId] : null;
 }
 
-export type SongDeps = { db: PrismaClient; providers: MusicProvider[] };
+export type SongDeps = { db: PrismaClient; providers: MusicProvider[]; classifier?: PromptClassifier | null };
 
 type EnqueueInput = Omit<CreateSongInput, "instrumental"> & { instrumental: boolean; variationOf?: string };
 
@@ -82,13 +86,29 @@ async function enqueueSong(deps: SongDeps, userId: string, input: EnqueueInput) 
     throw new SongServiceError("INVALID_PROVIDER", "Il modello scelto non è disponibile");
   }
 
-  const moderation = checkPrompt(`${input.prompt}\n${input.lyrics ?? ""}`);
+  const text = `${input.prompt}\n${input.lyrics ?? ""}`;
+  const moderation = checkPrompt(text);
   if (!moderation.allowed) {
     throw new SongServiceError(
       "MODERATION_BLOCKED",
       "La richiesta nomina un artista reale. Descrivi lo stile senza citare persone specifiche.",
     );
   }
+  if (deps.classifier) {
+    let verdict;
+    try {
+      verdict = await deps.classifier.classify(text);
+    } catch {
+      // Fails closed: when the check cannot run, the song is not created.
+      throw new SongServiceError("MODERATION_UNAVAILABLE", "La verifica del contenuto non è disponibile. Riprova tra poco.");
+    }
+    if (!verdict.allowed) {
+      throw new SongServiceError("MODERATION_BLOCKED", "La richiesta contiene elementi non consentiti. Riformula la descrizione.");
+    }
+  }
+
+  const apiCostCents = provider.estimateCostCents(input.durationMode);
+  const creditCost = creditsFor(apiCostCents, pricing);
 
   return deps.db.$transaction(async (tx) => {
     // Serializes requests from the same user, so two parallel requests cannot both pass the limit check.
@@ -104,8 +124,17 @@ async function enqueueSong(deps: SongDeps, userId: string, input: EnqueueInput) 
       );
     }
 
-    const apiCostCents = provider.estimateCostCents(input.durationMode);
-    const creditCost = creditsFor(apiCostCents, pricing);
+    if (apiCostCents > 0 && pricing.dailyApiCapCents > 0) {
+      // Global lock: the daily total is checked one request at a time, whatever the user.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('daily-api-cap'))`;
+      const spent = await tx.song.aggregate({
+        where: { createdAt: { gte: startOfUtcDay(new Date()) } },
+        _sum: { apiCostCents: true },
+      });
+      if ((spent._sum.apiCostCents ?? 0) + apiCostCents > pricing.dailyApiCapCents) {
+        throw new SongServiceError("DAILY_CAP_REACHED", "Il limite giornaliero di generazione è stato raggiunto. Riprova domani.");
+      }
+    }
 
     const song = await tx.song.create({
       data: {
