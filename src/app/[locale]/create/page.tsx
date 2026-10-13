@@ -6,21 +6,33 @@ import { getDictionary } from "@/i18n";
 import { isLocale, type Locale } from "@/i18n/routing";
 import { Wizard } from "@/features/wizard/Wizard";
 import type { ProviderOption } from "@/features/wizard/draft";
+import { creditsFor } from "@/features/wizard/costs";
 import { requireUser } from "@/server/auth/dal";
+import { getDb } from "@/server/db";
 import { getMusicProviders } from "@/server/music/registry";
+import { getPricing } from "@/server/pricing/settings";
 
 async function CreateContent({ locale, dict }: { locale: Locale; dict: Dictionary }) {
-  await requireUser();
-  const providers: ProviderOption[] = getMusicProviders().map((provider) => ({
-    id: provider.id,
-    label: provider.label,
-    durations: [...provider.capabilities.durations],
-    costCents: {
-      CLIP: provider.estimateCostCents("CLIP"),
-      SONG: provider.estimateCostCents("SONG"),
-    },
-  }));
-  return <Wizard locale={locale} dict={dict} providers={providers} />;
+  const user = await requireUser();
+  const pricing = await getPricing(getDb());
+  const providers: ProviderOption[] = getMusicProviders()
+    .filter((provider) => !pricing.disabledProviders.includes(provider.id))
+    .map((provider) => {
+      const costs = {
+        CLIP: provider.estimateCostCents("CLIP"),
+        SONG: provider.estimateCostCents("SONG"),
+      };
+      return {
+        id: provider.id,
+        label: provider.label,
+        durations: [...provider.capabilities.durations],
+        credits: {
+          CLIP: creditsFor(costs.CLIP, pricing),
+          SONG: creditsFor(costs.SONG, pricing),
+        },
+      };
+    });
+  return <Wizard locale={locale} dict={dict} providers={providers} balance={user.creditBalance} />;
 }
 
 export default async function CreatePage({ params }: PageProps<"/[locale]/create">) {

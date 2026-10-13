@@ -9,6 +9,7 @@ export type CurrentUser = {
   email: string;
   name: string | null;
   role: "USER" | "ADMIN";
+  creditBalance: number;
 };
 
 // Authorization is checked against the database on every call: role and blocked status
@@ -22,11 +23,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const user = await getDb().user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, role: true, blocked: true },
+    select: { id: true, email: true, name: true, role: true, blocked: true, creditBalance: true },
   });
   if (!user || user.blocked) return null;
 
-  return { id: user.id, email: user.email, name: user.name, role: user.role };
+  return { id: user.id, email: user.email, name: user.name, role: user.role, creditBalance: user.creditBalance };
 }
 
 export async function requireUser(): Promise<CurrentUser> {

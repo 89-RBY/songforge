@@ -74,3 +74,26 @@ describe("parseEnv", () => {
     ).not.toThrow();
   });
 });
+
+describe("parseEnv (billing and cost settings)", () => {
+  it("keeps the simulated cost at zero unless it is set", () => {
+    expect(parseEnv(base).MOCK_COST_CENTS).toBe(0);
+    expect(parseEnv({ ...base, MOCK_COST_CENTS: "4" }).MOCK_COST_CENTS).toBe(4);
+  });
+
+  it("requires the webhook secret together with the Stripe secret key", () => {
+    expect(() => parseEnv({ ...base, STRIPE_SECRET_KEY: "sk_test_123" })).toThrow(/STRIPE_WEBHOOK_SECRET/);
+    expect(() => parseEnv({ ...base, STRIPE_WEBHOOK_SECRET: "whsec_123" })).toThrow(/STRIPE_WEBHOOK_SECRET/);
+  });
+
+  it("rejects a Stripe key that does not look like a Stripe key", () => {
+    expect(() => parseEnv({ ...base, STRIPE_SECRET_KEY: "pk_test_123", STRIPE_WEBHOOK_SECRET: "whsec_1" })).toThrow(
+      /STRIPE_SECRET_KEY/,
+    );
+  });
+
+  it("accepts a complete Stripe configuration", () => {
+    const env = parseEnv({ ...base, STRIPE_SECRET_KEY: "sk_test_123", STRIPE_WEBHOOK_SECRET: "whsec_123" });
+    expect(env.STRIPE_SECRET_KEY).toBe("sk_test_123");
+  });
+});

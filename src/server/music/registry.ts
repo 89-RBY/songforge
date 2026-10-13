@@ -5,13 +5,13 @@ import type { MusicProvider } from "./types";
 
 type ProviderEnv = Pick<
   Env,
-  "MOCK_PROVIDER" | "MOCK_DELAY_MS" | "GEMINI_API_KEY" | "GEMINI_BASE_URL" | "LYRIA_SONG_MODEL" | "LYRIA_CLIP_MODEL" | "LYRIA_TIMEOUT_MS"
+  "MOCK_PROVIDER" | "MOCK_DELAY_MS" | "MOCK_COST_CENTS" | "GEMINI_API_KEY" | "GEMINI_BASE_URL" | "LYRIA_SONG_MODEL" | "LYRIA_CLIP_MODEL" | "LYRIA_TIMEOUT_MS"
 >;
 
 // Only providers that are configured are returned, so the UI never offers a model that cannot run.
 export function createProviders(env: ProviderEnv): MusicProvider[] {
   const providers: MusicProvider[] = [];
-  if (env.MOCK_PROVIDER) providers.push(new MockProvider(env.MOCK_DELAY_MS));
+  if (env.MOCK_PROVIDER) providers.push(new MockProvider(env.MOCK_DELAY_MS, undefined, env.MOCK_COST_CENTS));
   if (env.GEMINI_API_KEY) {
     providers.push(
       new LyriaProvider({

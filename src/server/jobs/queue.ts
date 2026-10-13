@@ -1,4 +1,7 @@
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+
+// Accepts the plain client or a transaction, so a job can be closed in the same transaction as its song.
+type Db = PrismaClient | Prisma.TransactionClient;
 
 export type ClaimedJob = {
   id: string;
@@ -38,7 +41,7 @@ export async function claimNextJob(db: PrismaClient, workerId: string): Promise<
   return rows[0] ?? null;
 }
 
-export async function completeJob(db: PrismaClient, jobId: string): Promise<void> {
+export async function completeJob(db: Db, jobId: string): Promise<void> {
   await db.job.update({
     where: { id: jobId },
     data: { status: "DONE", lockedAt: null, lockedBy: null },
@@ -47,7 +50,7 @@ export async function completeJob(db: PrismaClient, jobId: string): Promise<void
 
 // Returns RETRY when the job goes back to the queue with a delay, FAILED when it is final.
 export async function failJob(
-  db: PrismaClient,
+  db: Db,
   job: ClaimedJob,
   message: string,
   { retryable }: { retryable: boolean },

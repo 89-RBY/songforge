@@ -27,6 +27,8 @@ const envSchema = z
     LYRIA_CLIP_MODEL: z.string().min(1).default("lyria-3-clip-preview"),
     LYRIA_TIMEOUT_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
     MOCK_DELAY_MS: z.coerce.number().int().nonnegative().default(1500),
+    // Development only: simulated provider cost of a clip, to test credit charges without the real API.
+    MOCK_COST_CENTS: z.coerce.number().int().nonnegative().default(0),
     STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
     STORAGE_LOCAL_DIR: z.string().min(1).default(".data/audio"),
     S3_ENDPOINT: optionalString,
@@ -38,6 +40,8 @@ const envSchema = z
     ANTHROPIC_API_KEY: optionalString,
     LYRICS_MODEL: z.string().min(1).default("claude-opus-5-5"),
     AUDIO_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+    STRIPE_SECRET_KEY: optionalString,
+    STRIPE_WEBHOOK_SECRET: optionalString,
   })
   .superRefine((env, ctx) => {
     if (!env.MOCK_PROVIDER && !env.GEMINI_API_KEY) {
@@ -74,6 +78,16 @@ const envSchema = z
         path: ["EMAIL_TRANSPORT"],
         message: "In produzione serve EMAIL_TRANSPORT=smtp: i link di accesso non devono finire nei log",
       });
+    }
+    if (Boolean(env.STRIPE_SECRET_KEY) !== Boolean(env.STRIPE_WEBHOOK_SECRET)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STRIPE_WEBHOOK_SECRET"],
+        message: "STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET vanno impostati insieme",
+      });
+    }
+    if (env.STRIPE_SECRET_KEY && !/^(sk_test_|sk_live_|rk_)/.test(env.STRIPE_SECRET_KEY)) {
+      ctx.addIssue({ code: "custom", path: ["STRIPE_SECRET_KEY"], message: "STRIPE_SECRET_KEY non sembra una chiave Stripe" });
     }
     if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
       ctx.addIssue({

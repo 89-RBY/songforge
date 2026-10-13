@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       );
     }
     if (error instanceof SongServiceError) {
-      const status = error.code === "TOO_MANY_ACTIVE" ? 429 : 422;
+      const status = error.code === "TOO_MANY_ACTIVE" ? 429 : error.code === "INSUFFICIENT_CREDITS" ? 402 : 422;
       return NextResponse.json({ error: error.code, message: error.message }, { status });
     }
     throw error;

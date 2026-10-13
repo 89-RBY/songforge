@@ -3,7 +3,7 @@ import { createProviders, findProvider } from "@/server/music/registry";
 
 const base = {
   MOCK_PROVIDER: false,
-  MOCK_DELAY_MS: 0,
+  MOCK_DELAY_MS: 0, MOCK_COST_CENTS: 0,
   GEMINI_API_KEY: undefined,
   GEMINI_BASE_URL: "https://generativelanguage.googleapis.com",
   LYRIA_SONG_MODEL: "lyria-3.5",

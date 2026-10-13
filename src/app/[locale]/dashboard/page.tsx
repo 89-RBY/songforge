@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { signOut } from "@/auth";
 import { SiteHeader } from "@/components/SiteHeader";
 import type { Dictionary } from "@/i18n/dictionaries/it";
-import { getDictionary } from "@/i18n";
+import { format, getDictionary } from "@/i18n";
 import { isLocale, type Locale } from "@/i18n/routing";
 import { requireUser } from "@/server/auth/dal";
 
@@ -28,6 +28,12 @@ async function DashboardContent({ locale, dict }: { locale: Locale; dict: Dictio
       <Link href={`/${locale}/library`} className="w-fit rounded-full border border-zinc-700 px-5 py-2 text-sm hover:bg-zinc-900">
         {dict.library.title}
       </Link>
+      <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
+        <span>{format(dict.dashboard.credits, { count: user.creditBalance })}</span>
+        <Link href={`/${locale}/billing`} className="text-violet-300 underline">
+          {dict.dashboard.billingCta}
+        </Link>
+      </div>
       <p className="text-zinc-400">{dict.dashboard.libraryNote}</p>
       <form action={signOutAction}>
         <button type="submit" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-900">

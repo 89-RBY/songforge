@@ -377,6 +377,8 @@ export function SummaryStep({
   providerId,
   prompt,
   credits,
+  balance,
+  billingHref,
   busy,
   error,
   onSubmit,
@@ -385,6 +387,8 @@ export function SummaryStep({
   providerId: string;
   prompt: string;
   credits: number;
+  balance: number;
+  billingHref: string;
   busy: boolean;
   error: string | null;
   onSubmit: () => void;
@@ -394,6 +398,7 @@ export function SummaryStep({
   const available = providers.filter((provider) => provider.durations.includes(draft.durationMode));
   const durationLabel =
     draft.durationMode === "CLIP" ? dict.wizard.structure.clip.label : dict.wizard.structure.song.label;
+  const insufficient = credits > balance;
 
   return (
     <div className="space-y-6">
@@ -427,6 +432,9 @@ export function SummaryStep({
               t.free
             )}
           </p>
+          {credits > 0 && (
+            <p className="text-sm text-zinc-300">{format(t.balance, { count: balance })}</p>
+          )}
         </div>
       </div>
 
@@ -477,6 +485,15 @@ export function SummaryStep({
         <p>{t.rightsNote}</p>
       </div>
 
+      {insufficient && (
+        <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <p>{t.insufficient}</p>
+          <a href={billingHref} className="font-medium underline">
+            {t.buyCredits}
+          </a>
+        </div>
+      )}
+
       {error && (
         <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
@@ -486,7 +503,7 @@ export function SummaryStep({
       <button
         type="button"
         onClick={onSubmit}
-        disabled={busy || available.length === 0}
+        disabled={busy || available.length === 0 || insufficient}
         className="w-full rounded-full bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-600 disabled:opacity-50"
       >
         {busy ? t.submitting : t.submit}

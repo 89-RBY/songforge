@@ -104,3 +104,31 @@ Provider:
 Storage: `STORAGE_DRIVER=local` salva in `STORAGE_LOCAL_DIR`; `s3` usa un bucket S3-compatibile (Cloudflare R2 o altro).
 
 Limiti: una utente può avere al massimo due canzoni in lavorazione. Un prompt che nomina un artista reale viene rifiutato (`MODERATION_BLOCKED`).
+
+## Crediti e pagamenti (fase e)
+
+- Ogni generazione costa crediti: costo del modello × moltiplicatore (2,5), arrotondato per eccesso a crediti da 10 centesimi. Con i prezzi Lyria attuali (4 centesimi la clip, 8 la canzone) una clip costa 1 credito e una canzone 2. Impostazioni provvisorie, da confermare.
+- Il saldo è in `User.creditBalance`; ogni variazione passa dalla tabella `CreditEntry` (registro append-only) nella stessa transazione, con il blocco della riga utente. Un saldo non può andare sotto zero, anche con richieste parallele.
+- Addebito alla creazione della canzone. Se la generazione fallisce in modo definitivo (anche per rifiuto del modello), i crediti vengono restituiti nella stessa transazione. Durante i tentativi automatici non c'è rimborso né addebito aggiuntivo.
+- Bonus di benvenuto: 10 crediti alla prima registrazione (`signupCredits`).
+- Pacchetti provvisori: 25 crediti a 2,50 €, 100 a 9 €, 400 a 30 €. Prezzi in euro.
+- Pagamenti: Stripe Checkout, pagamento unico in EUR. Il webhook `POST /api/stripe/webhook` accredita i crediti su `checkout.session.completed` (e `checkout.session.async_payment_succeeded`) solo con firma valida. Ogni sessione Stripe vale una sola volta (`referenceKey = stripe:<session>`), quindi le consegne ripetute non duplicano i crediti.
+
+### Configurazione Stripe (modalità test)
+
+1. Crea un account Stripe e attiva la modalità test.
+2. Copia la chiave segreta di test (`sk_test_...`) in `STRIPE_SECRET_KEY`.
+3. Crea un endpoint webhook su `APP_URL/api/stripe/webhook` con gli eventi `checkout.session.completed` e `checkout.session.async_payment_succeeded`.
+4. Copia il "Signing secret" (`whsec_...`) in `STRIPE_WEBHOOK_SECRET`. Le due variabili vanno impostate insieme.
+5. Per provare un acquisto usa la carta di test `4242 4242 4242 4242`, qualsiasi data futura e qualsiasi CVC.
+
+Senza queste variabili la pagina crediti mostra gli acquisti come non disponibili e il webhook risponde 503.
+
+### Sviluppo senza costi
+
+Con `MOCK_PROVIDER=true` il modello di prova è gratuito. Imposta `MOCK_COST_CENTS=4` per simulare il costo di una clip e provare gli addebiti e i rimborsi senza chiamare il servizio reale.
+
+### Stato della verifica
+
+- Verificato automaticamente: ledger con concorrenza e idempotenza, addebito e rimborso delle canzoni, firma e doppia consegna dei webhook, parametri del checkout, E2E nel browser con webhook firmati in locale.
+- Non verificato: un checkout reale con Stripe. La sandbox di sviluppo non raggiunge `api.stripe.com`, quindi il flusso completo va provato in modalità test prima di attivare i pagamenti reali.

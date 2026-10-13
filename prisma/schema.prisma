@@ -24,9 +24,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  songs    Song[]
+  accounts      Account[]
+  sessions      Session[]
+  songs         Song[]
+  creditBalance Int       @default(0)
+  creditEntries CreditEntry[]
 }
 
 model Account {
@@ -115,6 +117,8 @@ model Song {
   sharedAt        DateTime?
   audioPurgedAt   DateTime?
   variationOf     String?
+  apiCostCents    Int          @default(0)
+  creditCost      Int          @default(0)
 
   user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobs Job[]
@@ -143,4 +147,38 @@ model Job {
   song Song? @relation(fields: [songId], references: [id], onDelete: Cascade)
 
   @@index([status, runAt])
+}
+
+enum CreditReason {
+  SIGNUP_BONUS
+  PURCHASE
+  GENERATION
+  REFUND
+  ADMIN_ADJUST
+}
+
+// Append-only ledger. The balance on User is only changed together with a new entry, in one transaction.
+// referenceKey is unique: the same event (a webhook delivery, a refund) can never be applied twice.
+model CreditEntry {
+  id           String       @id @default(cuid())
+  userId       String?
+  amount       Int
+  balanceAfter Int
+  reason       CreditReason
+  songId       String?
+  referenceKey String?      @unique
+  note         String?
+  priceCents   Int?
+  createdAt    DateTime     @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+// Operator settings (prices, credits, limits), stored as JSON and edited from the admin panel.
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
 }

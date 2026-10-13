@@ -8,6 +8,7 @@ const STATUS_BY_CODE: Record<SongServiceErrorCode, number> = {
   INVALID_STATE: 409,
   INVALID_PROVIDER: 422,
   MODERATION_BLOCKED: 422,
+  INSUFFICIENT_CREDITS: 402,
 };
 
 // Maps the errors of song operations to HTTP responses. Returns null for anything unexpected,

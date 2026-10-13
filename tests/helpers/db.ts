@@ -15,6 +15,8 @@ export function createTestDb(): PrismaClient {
 export async function resetTables(db: PrismaClient): Promise<void> {
   await db.job.deleteMany();
   await db.song.deleteMany();
+  await db.creditEntry.deleteMany();
+  await db.appSetting.deleteMany();
   await db.session.deleteMany();
   await db.account.deleteMany();
   await db.verificationToken.deleteMany();

@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { getEnv } from "@/server/config/env";
 import { getDb } from "@/server/db";
+import { grantSignupBonus } from "@/server/credits/ledger";
 import { sendMagicLink } from "@/server/email/send";
 
 const MAGIC_LINK_MAX_AGE_SECONDS = 24 * 60 * 60;
@@ -38,6 +39,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
     providers,
     // Database sessions: revoking a session or blocking a user takes effect on the next request.
     session: { strategy: "database", maxAge: SESSION_MAX_AGE_SECONDS },
+    events: {
+      // Runs once, when the adapter creates the account on the first magic-link sign-in.
+      async createUser({ user }) {
+        if (user.id) await grantSignupBonus(getDb(), user.id);
+      },
+    },
     pages: {
       signIn: "/login",
       verifyRequest: "/login/check-email",

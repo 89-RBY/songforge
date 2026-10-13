@@ -64,13 +64,15 @@ export class MockProvider implements MusicProvider {
   readonly label = "Prova (audio di esempio)";
   readonly capabilities = { durations: ["CLIP", "SONG"] as const, imageInput: false };
 
+  // costCents: simulated cost of a clip (a song costs twice as much, like the real provider). Zero by default.
   constructor(
     private readonly delayMs: number,
     private readonly sleep: Sleep = defaultSleep,
+    private readonly costCents = 0,
   ) {}
 
-  estimateCostCents(): number {
-    return 0;
+  estimateCostCents(durationMode: DurationMode): number {
+    return durationMode === "SONG" ? this.costCents * 2 : this.costCents;
   }
 
   async generate(request: MusicRequest, options: { signal?: AbortSignal } = {}): Promise<GeneratedAudio> {

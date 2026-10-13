@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@/generated/prisma/client";
+import { refundFailedSong } from "@/server/credits/ledger";
 import { completeJob, failJob, type ClaimedJob } from "@/server/jobs/queue";
 import { findProvider } from "@/server/music/registry";
 import { ProviderError, type MusicProvider } from "@/server/music/types";
@@ -20,6 +21,7 @@ export type GenerateDeps = {
   storage: AudioStorage;
 };
 
+// One transaction for the job, the song status and the refund: a failed song is always refunded, and only once.
 async function recordFailure(
   deps: GenerateDeps,
   job: ClaimedJob,
@@ -28,14 +30,17 @@ async function recordFailure(
   detail: string,
   retryable: boolean,
 ): Promise<void> {
-  const outcome = await failJob(deps.db, job, `${code}: ${detail}`, { retryable });
-  if (outcome === "RETRY") {
-    await deps.db.song.update({ where: { id: songId }, data: { status: "QUEUED", errorCode: code } });
-    return;
-  }
-  await deps.db.song.update({
-    where: { id: songId },
-    data: { status: "FAILED", errorCode: code, errorMessage: USER_MESSAGES[code] ?? USER_MESSAGES.UPSTREAM },
+  await deps.db.$transaction(async (tx) => {
+    const outcome = await failJob(tx, job, `${code}: ${detail}`, { retryable });
+    if (outcome === "RETRY") {
+      await tx.song.update({ where: { id: songId }, data: { status: "QUEUED", errorCode: code } });
+      return;
+    }
+    await tx.song.update({
+      where: { id: songId },
+      data: { status: "FAILED", errorCode: code, errorMessage: USER_MESSAGES[code] ?? USER_MESSAGES.UPSTREAM },
+    });
+    await refundFailedSong(tx, songId);
   });
 }
 

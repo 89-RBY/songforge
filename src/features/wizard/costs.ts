@@ -1,8 +1,8 @@
-// Provisional pricing. The margin and the credit value are confirmed before billing is switched on (billing phase).
-export const PRICING = { marginMultiplier: 2.5, centsPerCredit: 1 } as const;
+// Pure functions shared by the server and the wizard. The rates come from the pricing settings (see src/server/pricing).
+export type CreditRates = { marginMultiplier: number; centsPerCredit: number };
 
 // Credits charged to the user for a generation whose provider cost is apiCostCents. Free (0) when the provider is free.
-export function creditsFor(apiCostCents: number): number {
+export function creditsFor(apiCostCents: number, rates: CreditRates): number {
   if (apiCostCents <= 0) return 0;
-  return Math.ceil((apiCostCents * PRICING.marginMultiplier) / PRICING.centsPerCredit);
+  return Math.ceil((apiCostCents * rates.marginMultiplier) / rates.centsPerCredit);
 }

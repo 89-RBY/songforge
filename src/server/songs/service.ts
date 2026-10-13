@@ -2,6 +2,9 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { MOOD_HUE, type MoodId } from "@/features/wizard/catalog";
+import { InsufficientCreditsError, postCredits } from "@/server/credits/ledger";
+import { getPricing } from "@/server/pricing/settings";
+import { creditsFor } from "@/features/wizard/costs";
 import { findProvider } from "@/server/music/registry";
 import type { MusicProvider } from "@/server/music/types";
 import { checkPrompt } from "@/server/moderation/prompt";
@@ -38,6 +41,7 @@ export type SongServiceErrorCode =
   | "INVALID_PROVIDER"
   | "TOO_MANY_ACTIVE"
   | "MODERATION_BLOCKED"
+  | "INSUFFICIENT_CREDITS"
   | "NOT_FOUND"
   | "INVALID_STATE";
 
@@ -73,6 +77,10 @@ async function enqueueSong(deps: SongDeps, userId: string, input: EnqueueInput) 
   if (!provider.capabilities.durations.includes(input.durationMode)) {
     throw new SongServiceError("INVALID_PROVIDER", "Questo modello non supporta la durata scelta");
   }
+  const pricing = await getPricing(deps.db);
+  if (pricing.disabledProviders.includes(provider.id)) {
+    throw new SongServiceError("INVALID_PROVIDER", "Il modello scelto non è disponibile");
+  }
 
   const moderation = checkPrompt(`${input.prompt}\n${input.lyrics ?? ""}`);
   if (!moderation.allowed) {
@@ -96,6 +104,9 @@ async function enqueueSong(deps: SongDeps, userId: string, input: EnqueueInput) 
       );
     }
 
+    const apiCostCents = provider.estimateCostCents(input.durationMode);
+    const creditCost = creditsFor(apiCostCents, pricing);
+
     const song = await tx.song.create({
       data: {
         userId,
@@ -110,8 +121,30 @@ async function enqueueSong(deps: SongDeps, userId: string, input: EnqueueInput) 
         genre: input.genre,
         coverHue: coverHueFor(input.mood),
         variationOf: input.variationOf,
+        apiCostCents,
+        creditCost,
       },
     });
+
+    // Charged in the same transaction as the song: if the balance is short, neither the song nor the job exists.
+    if (creditCost > 0) {
+      try {
+        await postCredits(tx, {
+          userId,
+          amount: -creditCost,
+          reason: "GENERATION",
+          songId: song.id,
+          referenceKey: `generation:${song.id}`,
+          note: `${provider.id} ${input.durationMode}`,
+        });
+      } catch (error) {
+        if (error instanceof InsufficientCreditsError) {
+          throw new SongServiceError("INSUFFICIENT_CREDITS", "Crediti insufficienti per questa canzone");
+        }
+        throw error;
+      }
+    }
+
     await tx.job.create({ data: { kind: "generate_song", songId: song.id, maxAttempts: 3 } });
     return song;
   });

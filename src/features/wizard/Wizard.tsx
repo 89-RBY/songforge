@@ -7,7 +7,6 @@ import type { Dictionary } from "@/i18n/dictionaries/it";
 import type { Locale } from "@/i18n/routing";
 import { buildLyriaPrompt } from "@/server/music/prompt";
 import { GENRE_PROMPT, SECTION_IDS, STEP_IDS } from "./catalog";
-import { creditsFor } from "./costs";
 import {
   clearDraft,
   getDraftSnapshot,
@@ -34,7 +33,7 @@ import {
   type Update,
 } from "./steps";
 
-type Props = { locale: Locale; dict: Dictionary; providers: ProviderOption[] };
+type Props = { locale: Locale; dict: Dictionary; providers: ProviderOption[]; balance: number };
 type Busy = "lyrics" | "submit" | null;
 
 function apiErrorMessage(dict: Dictionary, code: string | undefined): string {
@@ -42,7 +41,7 @@ function apiErrorMessage(dict: Dictionary, code: string | undefined): string {
   return (code && messages[code]) || dict.apiErrors.GENERIC;
 }
 
-export function Wizard({ locale, dict, providers }: Props) {
+export function Wizard({ locale, dict, providers, balance }: Props) {
   const router = useRouter();
   const draft = useSyncExternalStore(subscribeDraft, getDraftSnapshot, getServerDraftSnapshot);
   const [index, setIndex] = useState(0);
@@ -67,7 +66,7 @@ export function Wizard({ locale, dict, providers }: Props) {
 
   const available = providers.filter((provider) => provider.durations.includes(draft.durationMode));
   const selected = available.find((provider) => provider.id === draft.providerId) ?? available[0];
-  const credits = selected ? creditsFor(selected.costCents[draft.durationMode]) : 0;
+  const credits = selected ? selected.credits[draft.durationMode] : 0;
   const builtPrompt = useMemo(() => buildLyriaPrompt(toSongSpec(draft)), [draft]);
   const prompt = draft.promptOverride ?? builtPrompt;
 
@@ -194,6 +193,8 @@ export function Wizard({ locale, dict, providers }: Props) {
           providerId={selected?.id ?? ""}
           prompt={prompt}
           credits={credits}
+          balance={balance}
+          billingHref={`/${locale}/billing`}
           busy={busy === "submit"}
           error={error}
           onSubmit={submit}

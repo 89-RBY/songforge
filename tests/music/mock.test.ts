@@ -53,7 +53,7 @@ describe("MockProvider", () => {
   });
 
   it("costs nothing", () => {
-    expect(new MockProvider(0).estimateCostCents()).toBe(0);
+    expect(new MockProvider(0).estimateCostCents("CLIP")).toBe(0);
   });
 
   it("stops during the simulated delay when the caller aborts", async () => {

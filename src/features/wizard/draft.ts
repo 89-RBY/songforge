@@ -74,11 +74,12 @@ export const PROMPT_KEYS = new Set<string>([
   "sections",
 ]);
 
+// Credits are computed on the server from the current pricing, so the wizard shows what will really be charged.
 export type ProviderOption = {
   id: string;
   label: string;
   durations: DurationMode[];
-  costCents: Record<DurationMode, number>;
+  credits: Record<DurationMode, number>;
 };
 
 const STORAGE_KEY = "songforge.wizard.v1";
