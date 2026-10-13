@@ -35,6 +35,8 @@ const envSchema = z
     S3_ACCESS_KEY_ID: optionalString,
     S3_SECRET_ACCESS_KEY: optionalString,
     WORKER_POLL_MS: z.coerce.number().int().positive().default(2000),
+    ANTHROPIC_API_KEY: optionalString,
+    LYRICS_MODEL: z.string().min(1).default("claude-opus-5-5"),
   })
   .superRefine((env, ctx) => {
     if (!env.MOCK_PROVIDER && !env.GEMINI_API_KEY) {

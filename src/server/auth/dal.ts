@@ -1,5 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/server/db";
 
@@ -13,6 +14,8 @@ export type CurrentUser = {
 // Authorization is checked against the database on every call: role and blocked status
 // are never trusted from the cookie alone.
 export async function getCurrentUser(): Promise<CurrentUser | null> {
+  // The session is per request: opt out of prerendering so the shell never caches an auth read.
+  await connection();
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return null;

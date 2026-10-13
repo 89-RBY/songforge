@@ -7,6 +7,7 @@ import { checkPrompt } from "@/server/moderation/prompt";
 export const MAX_ACTIVE_SONGS_PER_USER = 2;
 
 export const createSongInput = z.object({
+  title: z.string().trim().max(80).optional(),
   prompt: z.string().trim().min(10, "Descrivi la canzone in almeno 10 caratteri").max(2000),
   lyrics: z
     .string()
@@ -77,7 +78,7 @@ export async function createSong(deps: SongDeps, userId: string, rawInput: unkno
     const song = await tx.song.create({
       data: {
         userId,
-        title: deriveTitle(input.prompt),
+        title: input.title || deriveTitle(input.prompt),
         providerId: provider.id,
         durationMode: input.durationMode,
         instrumental: input.instrumental,

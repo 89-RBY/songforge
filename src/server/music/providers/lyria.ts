@@ -21,6 +21,12 @@ type LyriaResponse = {
 
 const BLOCK_FINISH_REASONS = new Set(["PROHIBITED_CONTENT", "SAFETY", "BLOCKLIST", "SPII"]);
 
+// The lyrics go into the text: the model reads them as part of the request.
+export function textWithLyrics(request: MusicRequest): string {
+  if (!request.lyrics) return request.prompt;
+  return `${request.prompt}\n\nUse these lyrics, keeping the section labels in square brackets:\n${request.lyrics}`;
+}
+
 // Exported for tests. Accepts the documented shape; anything else is an invalid response.
 export function parseLyriaResponse(payload: unknown): GeneratedAudio {
   const response = (payload ?? {}) as LyriaResponse;
@@ -77,7 +83,7 @@ export class LyriaProvider implements MusicProvider {
 
     // The key goes in a header, never in the URL, so it cannot end up in logs or error messages.
     const body = {
-      contents: [{ role: "user", parts: [{ text: request.prompt }] }],
+      contents: [{ role: "user", parts: [{ text: textWithLyrics(request) }] }],
       generationConfig: { responseModalities: ["AUDIO", "TEXT"] },
     };
 

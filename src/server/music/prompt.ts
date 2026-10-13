@@ -13,10 +13,11 @@ export type SongSpec = {
   vocalTimbre?: string;
   language?: string;
   instruments: string[];
+  structure?: string[]; // section names in song order, e.g. ["intro", "verse", "chorus"]
   durationMode: DurationMode;
 };
 
-const LANGUAGE_NAMES: Record<string, string> = {
+export const LANGUAGE_NAMES: Record<string, string> = {
   it: "Italian",
   en: "English",
   ro: "Romanian",
@@ -24,6 +25,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
   fr: "French",
   de: "German",
 };
+
+const DEFAULT_STRUCTURE = ["intro", "verse", "chorus", "bridge", "outro"];
 
 const VOCAL_TEXT: Record<VocalStyle, string> = {
   male: "a male lead vocal",
@@ -59,7 +62,7 @@ export function buildLyriaPrompt(spec: SongSpec): string {
   lines.push(
     spec.durationMode === "CLIP"
       ? "Create an original 30-second music clip."
-      : "Create an original complete song of about two minutes, with intro, verse, chorus, bridge and outro.",
+      : "Create an original complete song of about two minutes.",
   );
   lines.push(`Genre: ${genre}.`);
   lines.push(`Mood: ${clean(spec.mood, 60)}. Energy: ${energyLabel(spec.energy)} (${spec.energy}/10).`);
@@ -71,6 +74,11 @@ export function buildLyriaPrompt(spec: SongSpec): string {
     const timbre = spec.vocalTimbre ? `, ${clean(spec.vocalTimbre, 40)} timbre` : "";
     const language = spec.language ? LANGUAGE_NAMES[spec.language] ?? spec.language : "English";
     lines.push(`Vocals: ${VOCAL_TEXT[spec.vocal]}${timbre}. Lyrics language: ${language}.`);
+  }
+
+  if (spec.durationMode === "SONG") {
+    const sections = spec.structure?.length ? spec.structure : DEFAULT_STRUCTURE;
+    lines.push(`Structure: ${sections.map((section) => clean(section, 20)).join(", ")}.`);
   }
 
   if (spec.instruments.length > 0) {
